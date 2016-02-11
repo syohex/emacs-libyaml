@@ -17,6 +17,10 @@ Parse `string` and return Emacs Lisp objects.
 
 Read YAML file and return Emacs Lisp objects.
 
+#### `(yaml-dump obj)`
+
+Dump Emacs Lisp object to YAML string.
+
 ## Conversion Rule
 
 | YAML                     | Emacs Lisp   |
