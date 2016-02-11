@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'libyaml-core)
+(require 'subr-x)
 
 ;;;###autoload
 (defun yaml-read-from-string (str)
@@ -36,6 +37,10 @@
   (yaml-read-from-string
    (with-current-buffer (find-file-noselect file)
      (buffer-substring-no-properties (point-min) (point-max)))))
+
+;;;###autoload
+(defun yaml-dump (obj)
+  (libyaml-dump obj))
 
 (provide 'libyaml)
 
