@@ -50,7 +50,7 @@ is_true_str(const char *s, ptrdiff_t len)
 		return (strcmp("on", s) == 0 || strcmp("On", s) == 0
 			|| strcmp("ON", s) == 0);
 	case 3:
-		return (strcmp("yes", s) == 0 || strcmp("Yes", s)
+		return (strcmp("yes", s) == 0 || strcmp("Yes", s) == 0
 			|| strcmp("YES", s) == 0);
 	case 4:
 		return (strcmp("true", s) == 0 || strcmp("True", s) == 0
