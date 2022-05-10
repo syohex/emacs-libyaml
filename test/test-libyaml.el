@@ -1,8 +1,8 @@
-;;; test-libyaml.el --- Test for libyaml.el
+;;; test-libyaml.el --- Test for libyaml.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016 by Syohei YOSHIDA
+;; Copyright (C) 2022 by Shohei YOSHIDA
 
-;; Author: Syohei YOSHIDA <syohex@gmail.com>
+;; Author: Shohei YOSHIDA <syohex@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 (require 'ert)
 (require 'libyaml)
 (require 'cl-lib)
-(require 'subr-x)
 
 (ert-deftest read-from-string ()
   "Read YAML from string"

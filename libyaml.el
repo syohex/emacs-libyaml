@@ -1,8 +1,8 @@
-;;; libyaml.el --- libyaml binding
+;;; libyaml.el --- libyaml binding -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016 by Syohei YOSHIDA
+;; Copyright (C) 2022 by Shohei YOSHIDA
 
-;; Author: Syohei YOSHIDA <syohex@gmail.com>
+;; Author: Shohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-libyaml
 ;; Version: 0.01
 
