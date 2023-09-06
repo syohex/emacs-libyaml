@@ -32,3 +32,44 @@ Dump Emacs Lisp object to YAML string.
 | n, No, Off, False        | nil : symbol |
 | - aaa<br /> - bbb        | vector       |
 | name: Foo<br /> year: 19 | hash-table   |
+
+## Examples
+
+Example
+
+```elisp
+(let ((hash (make-hash-table)))
+  (puthash 'a 12 hash)
+  (puthash 'b 12 hash)
+  (yaml-dump hash))
+```
+
+```
+---
+a: 12
+b: 12
+...
+```
+
+Example
+
+```elisp
+(let (hash
+      (hash-1 (make-hash-table))
+      (hash-2 (make-hash-table)))
+  (puthash 'a 12 hash-1)
+  (puthash 'b 12 hash-1)
+  (puthash 'a 12 hash-2)
+  (puthash 'b 12 hash-2)
+  (setq hash `[,hash-1 ,hash-2])
+  (yaml-dump hash))
+```
+
+```
+---
+- a: 12
+  b: 12
+- a: 12
+  b: 12
+...
+```
