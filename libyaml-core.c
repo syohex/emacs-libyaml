@@ -219,51 +219,150 @@ list_length(emacs_env *env, emacs_value seq)
 }
 
 static emacs_value
-list_nth(emacs_env *env, emacs_value seq, intmax_t index)
+list_car(emacs_env *env, emacs_value seq)
 {
-	emacs_value Qnth = env->intern(env, "nth");
-	emacs_value i = env->make_integer(env, index);
-	emacs_value args[2] = { i, seq };
+	emacs_value Qcdr = env->intern(env, "car");
+	emacs_value args[1] = { seq };
+	return env->funcall(env, Qcdr, 1, args);
+}
 
-	return env->funcall(env, Qnth, 2, args);
+static emacs_value
+list_cdr(emacs_env *env, emacs_value seq)
+{
+	emacs_value Qcdr = env->intern(env, "cdr");
+	emacs_value args[1] = { seq };
+	return env->funcall(env, Qcdr, 1, args);
+}
+
+static bool
+is_list(emacs_env *env, emacs_value obj)
+{
+	return !env->is_not_nil(env, obj) || eq_type(env, env->type_of(env, obj), "cons");
+}
+
+static bool
+is_assoc_list(emacs_env *env, emacs_value list)
+{
+	while (env->is_not_nil(env, list)) {
+		emacs_value elm = list_car(env, list);
+		if (!eq_type(env, env->type_of(env, elm), "cons")) {
+			return false;
+		}
+
+		emacs_value cdr = list_cdr(env, elm);
+		if (eq_type(env, env->type_of(env, cdr), "cons")) {
+			return false;
+		}
+
+		list = list_cdr(env, list);
+		if (!is_list(env, list)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 static int
 emacs_value_to_yaml(emacs_env *env, yaml_document_t *document, emacs_value value)
 {
 	emacs_value type = env->type_of(env, value);
+	int node;
 
 	if (eq_type(env, type, "vector")) {
-		emacs_value vec = value;
-		intmax_t len = env->vec_size(env, vec);
-
-		int node = yaml_document_add_sequence(document, NULL, YAML_ANY_SEQUENCE_STYLE);
+		intmax_t len = env->vec_size(env, value);
+		node = yaml_document_add_sequence(document, NULL, YAML_ANY_SEQUENCE_STYLE);
+		if (node == 0) {
+			return -1;
+		}
 
 		for (ptrdiff_t i = 0; i < len; ++i) {
-			int child_node = emacs_value_to_yaml(env, document, env->vec_get(env, vec, i));
+			int element_node = emacs_value_to_yaml(env, document, env->vec_get(env, value, i));
+			if (element_node <= 0) {
+				return -1;
+			}
 
-			yaml_document_append_sequence_item(document, node, child_node);
+			int ret = yaml_document_append_sequence_item(document, node, element_node);
+			if (ret == 0) {
+				return -1;
+			}
 		}
-
-		return node;
 	} else if (eq_type(env, type, "hash-table")) {
-		emacs_value hash = value;
-		emacs_value keys = hash_keys(env, hash);
-		intmax_t size = list_length(env, keys);
-
-		int node = yaml_document_add_mapping(document, NULL, YAML_ANY_MAPPING_STYLE);
-		for (intmax_t i = 0; i < size; ++i) {
-			emacs_value k = list_nth(env, keys, i);
-			emacs_value v = hash_value(env, hash, k);
-
-			int key_node = emacs_value_to_yaml(env, document, k);
-			int val_node = emacs_value_to_yaml(env, document, v);
-
-			yaml_document_append_mapping_pair(document, node,
-							  key_node, val_node);
+		emacs_value key_list = hash_keys(env, value);
+		node = yaml_document_add_mapping(document, NULL, YAML_ANY_MAPPING_STYLE);
+		if (node == 0) {
+			return -1;
 		}
 
-		return node;
+		while (env->is_not_nil(env, key_list)) {
+			emacs_value key = list_car(env, key_list);
+
+			int key_node = emacs_value_to_yaml(env, document, key);
+			if (key_node <= 0) {
+				return -1;
+			}
+
+			int val_node = emacs_value_to_yaml(env, document, hash_value(env, value, key));
+			if (val_node <= 0) {
+				return -1;
+			}
+
+			int ret = yaml_document_append_mapping_pair(document, node, key_node, val_node);
+			if (ret == 0) {
+				return -1;
+			}
+
+			key_list = list_cdr(env, key_list);
+		}
+	} else if (eq_type(env, type, "cons"))	{
+		if (is_assoc_list(env, value)) {
+			node = yaml_document_add_mapping(document, NULL, YAML_ANY_MAPPING_STYLE);
+			if (node == 0) {
+				return -1;
+			}
+
+			while (env->is_not_nil(env, value)) {
+				emacs_value pair = list_car(env, value);
+
+				int key_node = emacs_value_to_yaml(env, document, list_car(env, pair));
+				if (key_node <= 0) {
+					return -1;
+				}
+
+				int val_node = emacs_value_to_yaml(env, document, list_cdr(env, pair));
+				if (val_node <= 0) {
+					return -1;
+				}
+
+				int ret = yaml_document_append_mapping_pair(document, node, key_node, val_node);
+				if (ret == 0) {
+					return -1;
+				}
+
+				value = list_cdr(env, value);
+			}
+		} else {
+			node = yaml_document_add_sequence(document, NULL, YAML_ANY_SEQUENCE_STYLE);
+			if (node == 0) {
+				return -1;
+			}
+
+			while (env->is_not_nil(env, value)) {
+				int element_node = emacs_value_to_yaml(env, document, list_car(env, value));
+				if (element_node <= 0) {
+					return -1;
+				}
+
+				int ret = yaml_document_append_sequence_item(document, node, element_node);
+				if (ret == 0) {
+					return -1;
+				}
+
+				value = list_cdr(env, value);
+				if (!is_list(env, value)) {
+					return -1;
+				}
+			}
+		}
 	} else {
 		if (!eq_type(env, type, "string")) {
 			if (env->is_not_nil(env, value)) {
@@ -278,7 +377,7 @@ emacs_value_to_yaml(emacs_env *env, yaml_document_t *document, emacs_value value
 			}
 		}
 
-		yaml_scalar_style_t style = YAML_ANY_MAPPING_STYLE;
+		yaml_scalar_style_t style = YAML_ANY_SCALAR_STYLE;
 		if (list_length(env, value) == 0) {
 			style = YAML_SINGLE_QUOTED_SCALAR_STYLE;
 		}
@@ -289,11 +388,14 @@ emacs_value_to_yaml(emacs_env *env, yaml_document_t *document, emacs_value value
 		env->copy_string_contents(env, value, str_buf, &len);
 
 		yaml_char_t *p = (yaml_char_t*)str_buf;
-		int node = yaml_document_add_scalar(document, NULL, p, len-1, style);
+		node = yaml_document_add_scalar(document, NULL, p, len-1, style);
 		free(str_buf);
-
-		return node;
+		if (node == 0) {
+			return -1;
+		}
 	}
+
+	return node;
 }
 
 struct emacs_write_data_t {
@@ -323,7 +425,11 @@ Fyaml_dump(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 	yaml_document_initialize(&document, NULL, NULL, NULL, 0, 0);
 
 	emacs_value root = args[0];
-	emacs_value_to_yaml(env, &document, root);
+	int node = emacs_value_to_yaml(env, &document, root);
+	if (node <= 0) {
+		yaml_document_delete(&document);
+		return env->intern(env, "nil");
+	}
 
 	yaml_emitter_t emitter;
 	yaml_emitter_initialize(&emitter);

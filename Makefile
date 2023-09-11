@@ -19,7 +19,7 @@ libyaml-core.o: libyaml-core.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	-rm -f libyaml-core.so libyaml-core.o
+	-rm -f libyaml-core.so libyaml-core.o *~
 
 test:
 	$(EMACS) -Q -batch -L . $(LOADPATH) \
