@@ -1,6 +1,6 @@
 ;;; test-libyaml.el --- Test for libyaml.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 by Shohei YOSHIDA
+;; Copyright (C) 2023 by Shohei YOSHIDA
 
 ;; Author: Shohei YOSHIDA <syohex@gmail.com>
 
@@ -41,5 +41,25 @@ script:
     (should (string= (gethash "language" got) "generic"))
     (should (cl-typep (gethash "before_install" got) 'vector))
     (should (string= (aref (gethash "script" got) 0) "make test"))))
+
+(ert-deftest yaml-dump-vector ()
+  "Vector to YAML string."
+  (should (string= (yaml-dump '[1 2 3]) "---\n- 1\n- 2\n- 3\n..."))
+  (should (string= (yaml-dump '["hello" 42]) "---\n- hello\n- 42\n..."))
+  (should (string= (yaml-dump '[42 (56)]) "---\n- 42\n- - 56\n...")))
+
+(ert-deftest yaml-dump-map ()
+  "Vector to YAML string."
+  (let ((m (make-hash-table :test #'equal)))
+    (puthash "a" 1 m)
+    (puthash "b" 2 m)
+    (should (or (string= (yaml-dump m) "---\na: 1\nb: 2\n...")
+                (string= (yaml-dump m) "---\nb: 2\na: 1\n...")))))
+
+(ert-deftest yaml-dump-alist ()
+  "Vector to YAML string."
+  (let ((alist '((a . 1) (b . "foo"))))
+    (should (or (string= (yaml-dump alist) "---\na: 1\nb: foo\n...")
+                (string= (yaml-dump alist) "---\nb: foo\na: 1\n...")))))
 
 ;;; test-libyaml.el ends here
